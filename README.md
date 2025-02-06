@@ -80,3 +80,18 @@ JOIN
 ORDER BY 
     tr.TEST_RUN_ID DESC  -- Or use a datetime column if you have one for ordering
 LIMIT 1;
+
+
+
+SELECT 
+    tr.TEST_RUN_ID,
+    tr.STATUS,
+    tr.TEST_NM,
+    tr.USR_ID,
+    tc.WORK_FLOW_ID
+FROM 
+    TEST_RUN tr
+JOIN 
+    TEST_CONTRL tc ON tr.TEST_RUN_ID = tc.TEST_RUN_ID
+WHERE 
+    tr.TEST_RUN_ID = (SELECT MAX(TEST_RUN_ID) FROM TEST_RUN);
