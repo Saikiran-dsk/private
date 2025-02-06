@@ -37,3 +37,46 @@ FROM
 WHERE 
     TABLE_NAME = 'MY_TABLE' 
     AND CONSTRAINT_TYPE = 'PRIMARY KEY';
+
+
+
+
+
+
+
+
+
+
+
+-- Step 1: Get the maximum TEST_RUN_ID based on STATUS and the associated WORK_FLOW_ID
+SELECT 
+    tr.TEST_RUN_ID, 
+    tr.STATUS,
+    MAX(tc.WORK_FLOW_ID) AS max_work_flow_id,
+    MAX(tr.TEST_RUN_ID) AS max_test_run_id
+FROM 
+    TEST_CONTRL tc
+JOIN 
+    TEST_RUN tr ON tr.TEST_RUN_ID = tc.TEST_RUN_ID
+WHERE 
+    tr.STATUS IN ('completed', 'in progress')  -- You can add more statuses as needed
+GROUP BY 
+    tr.TEST_RUN_ID, tr.STATUS
+ORDER BY 
+    tr.TEST_RUN_ID DESC, tr.STATUS DESC
+LIMIT 1;
+
+-- Step 2: Get the last record (if needed)
+SELECT 
+    tr.TEST_RUN_ID,
+    tr.TEST_NM,
+    tr.STATUS,
+    tr.USR_ID,
+    tc.WORK_FLOW_ID
+FROM 
+    TEST_RUN tr
+JOIN 
+    TEST_CONTRL tc ON tr.TEST_RUN_ID = tc.TEST_RUN_ID
+ORDER BY 
+    tr.TEST_RUN_ID DESC  -- Or use a datetime column if you have one for ordering
+LIMIT 1;
