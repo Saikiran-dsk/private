@@ -1,3 +1,85 @@
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class WorkflowServiceTest {
+
+    @Mock
+    private WorkFlowRunDao workFlowRunDao; // Mock DAO dependency
+
+    @InjectMocks
+    private WorkflowService workflowService; // Class under test
+
+    private static final int WORKFLOW_RUN_ID = 1;
+    private static final int TEST_RUN_ID = 100;
+
+    @BeforeEach
+    void setUp() {
+        workflowService = new WorkflowService(workFlowRunDao);
+    }
+
+    /** 
+     * Test successful execution of create method.
+     */
+    @Test
+    void testCreate_Success() {
+        doNothing().when(workFlowRunDao).create(any(WorkflowRun.class));
+
+        assertDoesNotThrow(() -> workflowService.create(WORKFLOW_RUN_ID, TEST_RUN_ID));
+
+        verify(workFlowRunDao, times(1)).create(any(WorkflowRun.class));
+    }
+
+    /** 
+     * Test scenario where DAO throws an exception.
+     */
+    @Test
+    void testCreate_DAOException() {
+        doThrow(new DAOAccessException("Database Error")).when(workFlowRunDao).create(any(WorkflowRun.class));
+
+        Exception exception = assertThrows(DAOAccessException.class, 
+            () -> workflowService.create(WORKFLOW_RUN_ID, TEST_RUN_ID));
+
+        assertEquals("Failed to persist workflowRun", exception.getMessage());
+        verify(workFlowRunDao, times(1)).create(any(WorkflowRun.class));
+    }
+
+    /** 
+     * Test unexpected exception handling.
+     */
+    @Test
+    void testCreate_RuntimeException() {
+        doThrow(new RuntimeException("Unexpected Error")).when(workFlowRunDao).create(any(WorkflowRun.class));
+
+        Exception exception = assertThrows(RuntimeException.class, 
+            () -> workflowService.create(WORKFLOW_RUN_ID, TEST_RUN_ID));
+
+        assertEquals("createAcknowledgement Step creating failed", exception.getMessage());
+        verify(workFlowRunDao, times(1)).create(any(WorkflowRun.class));
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import lombok.extern.slf4j.Slf4j;
 import java.util.Optional;
 
