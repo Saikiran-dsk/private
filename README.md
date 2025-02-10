@@ -1,3 +1,38 @@
+import lombok.extern.slf4j.Slf4j;
+import java.util.Optional;
+
+@Slf4j
+public void create(int workFlowRunId, int testRunId) throws DAOAccessException, RuntimeException, ResourceNotFoundException {
+    long startTime = System.currentTimeMillis(); // Capture start time for performance measurement
+    log.info("createAcknowledgement Step Started creating");
+
+    try {
+        // Initialize a new WorkflowRun instance
+        WorkflowRun workflowRun = new WorkflowRun();
+        
+        // Set values for the WorkflowRun object
+        workflowRun.setTestRunId((long) testRunId);
+        workflowRun.setTaskId((long) Constants.RECEIVED_ACKNOWLEDGE_FROM_FED);
+        workflowRun.setTaskStatusDetails(Constants.FED_RESPONSE_WAITING_MESSAGE);
+        workflowRun.setStatus(Constants.IN_PROGRESS);
+        workflowRun.setWorkflowRunId(workFlowRunId);
+        
+        // Use Optional to avoid NullPointerException before persisting the object
+        Optional.ofNullable(workflowRun).ifPresent(workfLowRunDao::create);
+        
+        long endTime = System.currentTimeMillis(); // Capture end time
+        log.info("createAcknowledgement Step creation - Time taken in ms: {}", endTime - startTime);
+    } catch (Exception e) {
+        // Log error with detailed message and stack trace
+        log.error("createAcknowledgement Step creation failed: {}", e.getMessage(), e);
+        throw new RuntimeException("createAcknowledgement Step creating failed", e);
+    }
+}
+
+
+
+
+
 SELECT 
     COLUMN_NAME, 
     DATA_TYPE, 
