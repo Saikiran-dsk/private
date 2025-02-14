@@ -1,3 +1,114 @@
+**FSS - SysOps Work Scenarios**
+
+This document outlines the different process flows in the FSS SysOps system, including the **Approved Process, Rejected Process, Cancel Process, and File Validation Failed Process**. Each process follows a structured workflow to ensure smooth execution.
+
+---
+
+## **1. Approved Process**
+
+### **Step 1: Open Modal**
+- The user clicks on the highlighted link on the screen.
+- A modal window opens for further processing.
+
+### **Step 2: Select Cycle Date and Upload File**
+- The user selects the cycle date from the calendar input.
+- The user uploads a file through the **Upload** button.
+
+### **Step 3: File Validation & Processing**
+- The uploaded file is validated in the backend.
+- If valid, it proceeds to the next steps.
+
+### **Step 4: View Uploaded Links**
+- The user sees a grid with three clickable links:
+  1. **Uploaded File** – Shows the original file.
+  2. **Updated File** – Displays the modified file.
+  3. **Secondary Approval** – Redirects to the secondary approval screen.
+
+### **Step 5: Verification of Files**
+- Clicking **Uploaded File** opens a modal with the original file contents.
+- Clicking **Updated File** opens a modal with the updated file contents.
+- Clicking **Secondary Approval** redirects to the approval screen.
+
+### **Step 6: Secondary Approval Process**
+- If the approver approves the file, it is reflected in the **NSS Test Table**.
+
+### **Step 7: Submit to Fed**
+- The file is submitted to Fed, awaiting response.
+
+### **Step 8: View Fed Response**
+- Upon receiving a response, a new link appears.
+- Clicking the link opens a modal with the **Fed request and response details**.
+
+### **Step 9: Final Report Generation**
+- Once the response is received, a **Test Report** link appears.
+- Clicking the link displays complete details of the workflow.
+
+---
+
+## **2. Rejected Process**
+
+### **Step 1 to Step 5: Same as Approved Process**
+- The process follows the same steps up to the **Secondary Approval** stage.
+
+### **Step 6: Secondary Approval Rejection**
+- If the secondary approval is **rejected**, it is recorded in the **NSS Test Table**.
+- The workflow is updated with **rejection comments**.
+
+### **Step 7: Disable Further Steps**
+- Since the request is rejected, the next steps are disabled.
+- The process moves directly to the **Test Report** step.
+
+### **Step 8: View Rejection Details**
+- Clicking the **Test Report** link displays all details, including rejection comments and workflow status.
+
+---
+
+## **3. Cancel Process**
+
+### **Step 1 to Step 5: Same as Approved Process**
+- The process follows the same steps up to the **Secondary Approval** stage.
+
+### **Step 6: Workflow Cancellation**
+- If the user **cancels** the workflow, it cancels:
+  - The entire process.
+  - The secondary approval step.
+
+### **Step 7: Disable Further Steps**
+- Once canceled, all further steps are disabled.
+- The process moves to the **Test Report** step.
+
+### **Step 8: View Cancellation Details**
+- Clicking the **Test Report** link displays all details, including cancellation status.
+
+---
+
+## **4. File Validation Failed Process**
+
+### **Step 1 to Step 3: Same as Approved Process**
+- The user selects a cycle date and uploads a file.
+- The backend validates the file.
+
+### **Step 4: Validation Failure Handling**
+- If the file is **invalid**, the system:
+  - Enables the **Upload File** step again.
+  - Disables all next steps.
+  - Directly enables the **Test Report** step.
+
+### **Step 5: View Original File**
+- Clicking **Uploaded File** allows the user to verify the original file.
+
+### **Step 6: View Validation Failure Details**
+- Clicking the **Test Report** link displays details about the validation failure and workflow status.
+
+---
+
+## **Conclusion**
+Each of the four processes follows a structured workflow to ensure proper handling of approvals, rejections, cancellations, and file validation failures. Users can track each step through the provided UI links and modals, ensuring transparency and efficiency in the system.
+
+
+
+
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
