@@ -1,3 +1,19 @@
+{
+  value: any,              // Actual cell value
+  data: any,               // Full row data
+  node: RowNode,           // Row details
+  colDef: ColDef,          // Column definition
+  column: Column,          // Column object
+  rowIndex: number,        // Row index
+  api: GridApi,            // Grid API instance
+  columnApi: ColumnApi,    // Column API instance
+  context: any,            // Context object (if provided)
+  refreshCell: Function    // Function to refresh the cell
+}
+
+
+
+
 **FSS - SysOps Work Scenarios**
 
 This document outlines the different process flows in the FSS SysOps system, including the **Approved Process, Rejected Process, Cancel Process, and File Validation Failed Process**. Each process follows a structured workflow to ensure smooth execution.
