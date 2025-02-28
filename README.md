@@ -1,6 +1,4 @@
-https://coderbyte.com/sl-candidate?inviteKey=M34m7yLi5f
-
-https://meet.google.com/vjo-xinp-aws?hs=224
+https://applicant.psyhire.ai/auth/signin?applicant_id=67c1774eac7730c3eb6f2426&company_id=046d6714-e447-11ef-8c15-8f8f29a112bf&job_id=RECA1J30&stage_id=STAGE177320444190593551
 
 
 
