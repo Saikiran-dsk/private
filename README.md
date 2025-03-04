@@ -1,9 +1,7 @@
-https://applicant.psyhire.ai/auth/signin?applicant_id=67c1774eac7730c3eb6f2426&company_id=046d6714-e447-11ef-8c15-8f8f29a112bf&job_id=RECA1J30&stage_id=STAGE177320444190593551
-
-
-
-
-
+SELECT * 
+FROM your_table 
+WHERE JSON_VALUE(DBMS_LOB.SUBSTR(your_blob_column, 4000, 1), '$.cycleDate') = '03-13-2025'
+AND JSON_VALUE(DBMS_LOB.SUBSTR(your_blob_column, 4000, 1), '$.submissionId') = '16';
 
 
 
