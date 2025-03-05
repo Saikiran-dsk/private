@@ -1,3 +1,15 @@
+# Maximum file size (2MB)
+spring.servlet.multipart.max-file-size=2MB
+# Maximum request size (2MB)
+spring.servlet.multipart.max-request-size=2MB
+ @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleMaxSizeException(MaxUploadSizeExceededException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds the maximum limit of 2MB");
+        problemDetail.setProperty("errorCode", "FILE_SIZE_EXCEEDED");
+        return problemDetail;
+    }
+
+
 SELECT * 
 FROM your_table 
 WHERE JSON_VALUE(DBMS_LOB.SUBSTR(your_blob_column, 4000, 1), '$.cycleDate') = '03-13-2025'
