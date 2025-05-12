@@ -77,3 +77,82 @@ export class MyComponent {
     this.excelService.exportMultipleSheets(dataSheets, 'MyReport');
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+============================================\
+ constructor(
+    private rendererFactory: RendererFactory2,
+    private sanitizer: DomSanitizer,
+    @Inject(DOCUMENT) private document: Document
+  ) {
+    this.renderer = rendererFactory.createRenderer(null, null);
+  }
+
+  printDiv(divId: string): void {
+    const target: HTMLElement | null = this.document.getElementById(divId);
+
+    if (!target) {
+      console.error(`Element with id "${divId}" not found`);
+      return;
+    }
+
+    const rawHtml: string = target.innerHTML;
+    const sanitizedHtml: string | null = this.sanitizer.sanitize(SecurityContext.HTML, rawHtml);
+
+    if (!sanitizedHtml) {
+      console.error('Sanitized content is empty or unsafe.');
+      return;
+    }
+
+    const printWindow: Window | null = window.open('', '', 'width=800,height=600');
+
+    if (!printWindow || !printWindow.document) {
+      console.error('Unable to open or access print window.');
+      return;
+    }
+
+    const doc: Document = printWindow.document;
+
+    // Create HTML structure using Renderer2
+    const htmlEl: HTMLElement = this.renderer.createElement('html');
+    const headEl: HTMLElement = this.renderer.createElement('head');
+    const titleEl: HTMLTitleElement = this.renderer.createElement('title');
+    const titleText: Text = this.renderer.createText('Print Preview');
+    this.renderer.appendChild(titleEl, titleText);
+    this.renderer.appendChild(headEl, titleEl);
+
+    const styleEl: HTMLStyleElement = this.renderer.createElement('style');
+    const styleText: Text = this.renderer.createText(`
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      pre { white-space: pre-wrap; word-break: break-word; }
+    `);
+    this.renderer.appendChild(styleEl, styleText);
+    this.renderer.appendChild(headEl, styleEl);
+
+    const bodyEl: HTMLElement = this.renderer.createElement('body');
+    const contentContainer: HTMLElement = this.renderer.createElement('div');
+    contentContainer.innerHTML = sanitizedHtml; // safe
+
+    this.renderer.appendChild(bodyEl, contentContainer);
+    this.renderer.appendChild(htmlEl, headEl);
+    this.renderer.appendChild(htmlEl, bodyEl);
+
+    // Write to print window document
+    doc.open();
+    doc.write('<!DOCTYPE html>');
+    doc.write(htmlEl.outerHTML);
+    doc.close();
+
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
