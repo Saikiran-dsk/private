@@ -1,10 +1,10 @@
-@ViewChild('textboxRef', { static: true }) textboxRef!: ElementRef;
-
-ngAfterViewInit() {
-  const clearIcon = this.textboxRef.nativeElement.querySelector('.clear-icon-container');
-  if (clearIcon) {
-    clearIcon.setAttribute('matTooltip', 'Clear the field');
-  }
+dtccEmailValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
+    if (value && !value.toLowerCase().endsWith('@dtcc.com')) {
+      return { invalidDomain: 'Email must end with @dtcc.com' };
+    }
+    return null;
+  };
 }
-
-#textboxRef
+this.dtccEmailValidator()
