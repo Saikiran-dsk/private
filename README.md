@@ -1,9 +1,8 @@
-"<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🧩 Dynamic Category Manager</title>
+  <title>Credential Manager</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
@@ -91,18 +90,18 @@
 <body>
 
 <div class="container">
-  <h3 class="mb-4 text-primary text-center">🧩 Dynamic Category Manager</h3>
+  <h3 class="mb-4 text-primary text-center">Credential Manager</h3>
 
   <div class="d-flex gap-2 mb-3">
     <input type="text" id="newCategoryInput" class="form-control" placeholder="Category Name (e.g. QA)" />
     <input type="text" id="newFieldsInput" class="form-control" placeholder="Fields (comma-separated)" />
-    <button class="btn btn-outline-primary add-cat-btn" onclick="addCategory()">➕ Add Category</button>
+    <button class="btn btn-outline-success add-cat-btn" onclick="addCategory()">➕ Add Category</button>
   </div>
 
   <div id="categoriesContainer"></div>
 
-  <h6 class="text-muted mt-4">🧾 Local Storage:</h6>
-  <pre id="jsonOutput"></pre>
+  <!--<h6 class="text-muted mt-4">🧾 Local Storage:</h6>
+  <pre id="jsonOutput"></pre>-->
 </div>
 
 <script>
@@ -130,7 +129,9 @@
       input.value = data[field] || "";
       input.setAttribute("data-field", field);
       input.addEventListener("input", () => updateCategoryData(category));
-
+      if (field.toLowerCase() === "password") {
+	   input.type = "password";
+	  }
       inputWrap.appendChild(input);
 
       if (field.toLowerCase() === "url") {
@@ -282,4 +283,3 @@
 
 </body>
 </html>
-"
