@@ -1,3 +1,97 @@
+function Manage-SharedMailboxAccess {
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSCredential]$exchangeCreds,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$taskParams
+    )
+
+    # Extract parameters
+    $sharedMailbox = $taskParams["SharedMailbox"]
+    $securityGroup = $taskParams["SecurityGroup"]
+    $accessRights  = $taskParams["AccessRights"]
+    $action        = $taskParams["Action"]
+
+    if (-not $sharedMailbox -or -not $securityGroup -or -not $accessRights -or -not $action) {
+        Write-Error "Missing required parameters: SharedMailbox, SecurityGroup, AccessRights, Action"
+        return
+    }
+
+    # Check if already connected to Exchange Online
+    $isConnected = $false
+    try {
+        $sessionInfo = Get-ConnectionInformation -ErrorAction Stop
+        if ($sessionInfo.ConnectedEndpoints -contains "ExchangeOnline") {
+            $isConnected = $true
+        }
+    } catch {
+        # Not connected
+    }
+
+    if (-not $isConnected) {
+        try {
+            Write-Host "Connecting to Exchange Online..." -ForegroundColor Cyan
+            Connect-ExchangeOnline -Credential $exchangeCreds `
+                                   -WarningAction SilentlyContinue `
+                                   -ErrorAction Stop `
+                                   -ShowBanner:$false
+        } catch {
+            Write-Error "Failed to connect to Exchange Online: $_"
+            return
+        }
+    }
+
+    try {
+        switch ($action.ToLower()) {
+            "add" {
+                Write-Host "Adding '$accessRights' permission to '$securityGroup' on mailbox '$sharedMailbox'" -ForegroundColor Green
+                Add-MailboxPermission -Identity $sharedMailbox `
+                                      -User $securityGroup `
+                                      -AccessRights $accessRights `
+                                      -InheritanceType All `
+                                      -AutoMapping:$false
+                Write-Host "Access granted." -ForegroundColor Green
+            }
+
+            "remove" {
+                Write-Host "Removing '$accessRights' permission from '$securityGroup' on mailbox '$sharedMailbox'" -ForegroundColor Yellow
+                Remove-MailboxPermission -Identity $sharedMailbox `
+                                         -User $securityGroup `
+                                         -AccessRights $accessRights `
+                                         -InheritanceType All `
+                                         -Confirm:$false
+                Write-Host "Access revoked." -ForegroundColor Yellow
+            }
+
+            "update" {
+                Write-Host "Updating permission: removing then adding '$accessRights' for '$securityGroup' on '$sharedMailbox'" -ForegroundColor Cyan
+                Remove-MailboxPermission -Identity $sharedMailbox `
+                                         -User $securityGroup `
+                                         -AccessRights $accessRights `
+                                         -InheritanceType All `
+                                         -Confirm:$false -ErrorAction SilentlyContinue
+
+                Add-MailboxPermission -Identity $sharedMailbox `
+                                      -User $securityGroup `
+                                      -AccessRights $accessRights `
+                                      -InheritanceType All `
+                                      -AutoMapping:$false
+                Write-Host "Access updated." -ForegroundColor Cyan
+            }
+
+            default {
+                Write-Error "Invalid action: '$action'. Use 'Add', 'Remove', or 'Update'."
+            }
+        }
+    } catch {
+        Write-Error "Error performing '$action' on mailbox '$sharedMailbox': $_"
+    }
+}
+
+
+
+----------------------------------------
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
