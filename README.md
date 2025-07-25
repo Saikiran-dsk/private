@@ -9,6 +9,82 @@ function Manage-SharedMailboxAccess {
 
     # Extract parameters
     $sharedMailbox = $taskParams["SharedMailbox"]
+    $groupName     = $taskParams["SecurityGroup"]  # Now just the group name
+
+    if (-not $sharedMailbox -or -not $groupName) {
+        Write-Error "Missing required parameters: SharedMailbox, SecurityGroup (group name)"
+        return
+    }
+
+    # Check if already connected to Exchange Online
+    $isConnected = $false
+    try {
+        $sessionInfo = Get-ConnectionInformation -ErrorAction Stop
+        if ($sessionInfo.ConnectedEndpoints -contains "ExchangeOnline") {
+            $isConnected = $true
+        }
+    } catch {
+        # Not connected
+    }
+
+    if (-not $isConnected) {
+        try {
+            Write-Host "Connecting to Exchange Online..." -ForegroundColor Cyan
+            Connect-ExchangeOnline -Credential $exchangeCreds `
+                                   -WarningAction SilentlyContinue `
+                                   -ErrorAction Stop `
+                                   -ShowBanner:$false
+        } catch {
+            Write-Error "Failed to connect to Exchange Online: $_"
+            return
+        }
+    }
+
+    # Resolve group name to identity
+    try {
+        $group = Get-Recipient -RecipientTypeDetails MailUniversalSecurityGroup -Identity $groupName -ErrorAction Stop
+        $resolvedGroupIdentity = $group.Name
+    } catch {
+        Write-Error "Failed to resolve group name '$groupName' in Exchange Online."
+        return
+    }
+
+    # Add mailbox permission (Read-only or FullAccess)
+    try {
+        Write-Host "Adding 'ReadPermission' to '$resolvedGroupIdentity' on mailbox '$sharedMailbox'" -ForegroundColor Green
+
+        # 🔹 Grant read-only access (this is rarely used and more symbolic here)
+        Add-MailboxPermission -Identity $sharedMailbox `
+                              -User $resolvedGroupIdentity `
+                              -AccessRights ReadPermission `
+                              -InheritanceType All `
+                              -AutoMapping:$false
+
+        # 🔒 COMMENTED: To give full access instead of read-only, use below line:
+        # Add-MailboxPermission -Identity $sharedMailbox `
+        #                       -User $resolvedGroupIdentity `
+        #                       -AccessRights FullAccess `
+        #                       -InheritanceType All `
+        #                       -AutoMapping:$false
+
+        Write-Host "Access granted successfully." -ForegroundColor Green
+    } catch {
+        Write-Error "Error granting access to mailbox '$sharedMailbox': $_"
+    }
+}
+
+----------------------------------------------------------------
+function Manage-SharedMailboxAccess {
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSCredential]$exchangeCreds,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$taskParams
+    )
+
+    # Extract parameters
+    $sharedMailbox = $taskParams["SharedMailbox"]
     $securityGroup = $taskParams["SecurityGroup"]
     $accessRights  = $taskParams["AccessRights"]
     $action        = $taskParams["Action"]
