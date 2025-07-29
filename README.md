@@ -1,3 +1,45 @@
+
+# --- CONFIGURATION ---
+$sharedMailbox = "sharedmailbox@yourdomain.com"            # <-- Replace with your shared mailbox
+$mailEnabledSecurityGroupName = "Your MESG Display Name"   # <-- Replace with your MESG name
+
+# Connect and grant access
+try {
+    Write-Host "`n🌐 Connecting to Exchange Online..." -ForegroundColor Cyan
+    Connect-ExchangeOnline -ErrorAction Stop
+
+    # Resolve MESG
+    Write-Host "🔍 Resolving group '$mailEnabledSecurityGroupName'..." -ForegroundColor Yellow
+    $group = Get-Recipient -RecipientTypeDetails MailUniversalSecurityGroup -ErrorAction Stop |
+             Where-Object { $_.Name -eq $mailEnabledSecurityGroupName }
+
+    if (-not $group) {
+        throw "Mail-Enabled Security Group '$mailEnabledSecurityGroupName' not found."
+    }
+
+    $groupAddress = $group.PrimarySmtpAddress
+    Write-Host "✅ MESG resolved: $groupAddress" -ForegroundColor Green
+
+    # Grant FullAccess
+    Write-Host "🔐 Granting FullAccess to '$sharedMailbox' for '$groupAddress'..." -ForegroundColor Yellow
+    Add-MailboxPermission -Identity $sharedMailbox `
+                          -User $groupAddress `
+                          -AccessRights FullAccess `
+                          -InheritanceType All `
+                          -AutoMapping $false -ErrorAction Stop
+
+    Write-Host "✅ FullAccess permission granted successfully." -ForegroundColor Green
+}
+catch {
+    Write-Host "`n❌ ERROR: $($_.Exception.Message)" -ForegroundColor Red
+}
+finally {
+    Write-Host "`n🔌 Disconnecting from Exchange Online..." -ForegroundColor DarkCyan
+    Disconnect-ExchangeOnline -Confirm:$false
+    Write-Host "✅ Disconnected." -ForegroundColor Green
+}
+
+--------------------------------------------------------------
 function Manage-SharedMailboxAccess {
     param (
         [Parameter(Mandatory = $true)]
