@@ -1,4 +1,82 @@
+// FedSecuritiesApi.java
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@Tag(name = "Fed Securities Tests", description = "Operations related to Fed Securities testing")
+@RequestMapping("/fedtests/fedSecurities")
+public interface FedSecuritiesApi {
+
+    @Operation(summary = "Run pre-test tasks for Fed Securities")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Pre-test tasks executed successfully",
+            content = @Content(schema = @Schema(implementation = FedTestResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content),
+        @ApiResponse(responseCode = "500", description = "Server error", content = @Content)
+    })
+    @PostMapping("/runPreTestTasks")
+    ResponseEntity<FedTestResponse> runPreTestTasks(@RequestBody FedTestRequest request);
+
+
+    @Operation(summary = "Run post-test tasks for Fed Securities")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Post-test tasks executed successfully",
+            content = @Content(schema = @Schema(implementation = FedTestResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid input", content = @Content),
+        @ApiResponse(responseCode = "500", description = "Server error", content = @Content)
+    })
+    @PostMapping("/runPostTestTasks")
+    ResponseEntity<FedTestResponse> runPostTestTasks(@RequestBody FedTestRequest request);
+}
+
+// FedSecuritiesController.java
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class FedSecuritiesController implements FedSecuritiesApi {
+
+    @Override
+    public ResponseEntity<FedTestResponse> runPreTestTasks(FedTestRequest request) {
+        FedTestResponse response = new FedTestResponse();
+        response.setStatus("SUCCESS");
+        response.setMessage("Pre-test tasks executed for test ID: " + request.getTestId());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<FedTestResponse> runPostTestTasks(FedTestRequest request) {
+        FedTestResponse response = new FedTestResponse();
+        response.setStatus("SUCCESS");
+        response.setMessage("Post-test tasks executed for test ID: " + request.getTestId());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+
+// FedTestRequest.java
+public class FedTestRequest {
+    private String testId;
+    private String description;
+
+    // Getters and Setters
+}
+// FedTestResponse.java
+public class FedTestResponse {
+    private String status;
+    private String message;
+
+    // Getters and Setters
+}
+
+--------------------------------------------------------------
 # --- CONFIGURATION ---
 $sharedMailbox = "sharedmailbox@yourdomain.com"            # <-- Replace with your shared mailbox
 $mailEnabledSecurityGroupName = "Your MESG Display Name"   # <-- Replace with your MESG name
