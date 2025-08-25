@@ -1,3 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Credential Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    :root{
+      --bg1:#f4f7fb;        /* light gradient */
+      --bg2:#eaf1f9;
+      --card:#ffffffee;     /* soft card */
+      --muted:#e1e7f0;      /* borders */
+      --muted-2:#f4f8ff;    /* header band */
+      --ring:#1877f2;       /* focus */
+      --text:#243447;       /* body text */
+      --gap:6px;            /* compact gaps */
+      --radius:12px;        /* rounded */
+      --btn-radius:10px;
+      --shadow:0 8px 28px rgba(0,0,0,.08);
+    }
+
+    /* Page + full use with small margins 10/20px */
+    html, body { height:100%; }
+    body{
+      margin:0;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      color:var(--text);
+      font-size:14px;
+    }
+    .wrap{
+      width:calc(100% - 40px);
+      margin:10px 20px 20px;
+      background:var(--card);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .title{
+      margin:0 0 12px;
+      text-align:center;
+      font-weight:700;
+      font-size:20px;
+      color:#0d6efd;
+      letter-spacing:.2px;
+    }
+
+    /* Toolbar: keep in one row; scroll if overflow */
+    .toolbar{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+      overflow-x:auto;
+      padding-bottom:4px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .toolbar input{
+      flex:1 1 280px;       /* grow to share space */
+      min-width:240px;
+    }
+
+    /* Inputs */
+    .input{
+      border:1px solid #cfd6e0;
+      background:#f9fbfe;
+      color:var(--text);
+      border-radius:10px;
+      padding:6px 10px;
+      font-size:13px;
+      outline:none;
+      transition:border-color .15s, box-shadow .15s, background .15s;
+    }
+    .input:focus{
+      border-color:var(--ring);
+      box-shadow:0 0 0 3px rgba(24,119,242,.15);
+      background:#fff;
+    }
+
+    /* Buttons (consistent) */
+    .btn{
+      border:none;
+      border-radius:var(--btn-radius);
+      padding:7px 12px;
+      font-size:12.5px;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease, opacity .12s ease;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+      white-space:nowrap;
+    }
+    .btn:hover{ transform:translateY(-1px); box-shadow:0 3px 12px rgba(0,0,0,.12); }
+    .btn:active{ transform:translateY(0); }
+    .btn-green{ background:#28a745; color:#fff; }
+    .btn-green:hover{ background:#218838; }
+    .btn-blue{ background:#1877f2; color:#fff; }
+    .btn-blue:hover{ background:#0f66d6; }
+    .btn-gray{ background:#6b7280; color:#fff; }
+    .btn-gray:hover{ background:#5a6472; }
+    .btn-red{ background:#e11d48; color:#fff; }
+    .btn-red:hover{ background:#be123c; }
+    .btn-ghost{ background:#f3f6fb; color:#374151; border:1px solid #cfd6e0; }
+    .btn-ghost:hover{ background:#eaf0f8; }
+
+    /* Category card */
+    .cat{
+      background:#fbfdff;
+      border:1px solid var(--muted);
+      border-radius:var(--radius);
+      padding:10px;
+      margin-top:12px;
+    }
+    .cat-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .cat-title{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:0;
+      font-weight:600;
+      font-size:15px;
+      color:#0d6efd;
+    }
+    .head-actions{ display:flex; gap:6px; }
+
+    /* Grid (perfect alignment, minimal spacing) */
+    .grid{ display:grid; grid-auto-flow:row; row-gap:var(--gap); }
+    .grid-header, .grid-row{
+      display:grid;
+      align-items:center;
+      column-gap:var(--gap);
+    }
+    .grid-header{
+      background:var(--muted-2);
+      border:1px solid var(--muted);
+      border-radius:10px;
+      padding:6px;
+      font-weight:600;
+      font-size:12.5px;
+    }
+    .grid-row{ padding:0; margin-top: 8px;
+    margin-bottom: 8px;}
+
+    .cell{
+      display:flex;
+      align-items:center;
+      gap:4px;            /* << minimal per-column spacing */
+      min-width:0;        /* allow shrinking */
+    }
+    .cell .input{ padding:5px 8px; font-size:12.5px; width:100%; }
+
+    .row-actions{ display:flex; align-items:center; gap:6px; justify-content:flex-start; }
+
+    /* Feedback flashes */
+    .flash-success{ animation:flashGreen .45s; }
+    .flash-danger{ animation:flashRed .45s; }
+    @keyframes flashGreen{ from{ background:#d1e7dd; } to{ background:transparent; } }
+    @keyframes flashRed{ from{ background:#fde2e7; } to{ background:transparent; } }
+
+    /* Collapse */
+    .collapsed .grid-header,
+    .collapsed .grid-row,
+    .collapsed .add-row-wrap{ display:none; }
+
+    /* Responsive: keep columns on one row for desktops; on very small screens allow wrap by switching to block */
+    @media (max-width: 840px){
+      .grid-header, .grid-row { display:block; }
+      .row-actions{ margin-top:6px; }
+    }
+    .add-row-btn{
+        display: flex;
+    justify-content: center;
+    }
+    .grid-header{
+            margin-top: 10px;
+    margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2 class="title"><i class="fa-solid fa-vault"></i> Credential Manager</h2>
+
+    <!-- Top bar: all controls in ONE row -->
+    <div class="toolbar">
+      <input id="newCategoryInput" class="input" placeholder="Category name (e.g. QA)" />
+      <input id="newFieldsInput" class="input" placeholder="Column names (comma-separated: Name, URL, Username, Password)" />
+      <button id="addCatBtn" class="btn btn-green"><i class="fa-solid fa-plus"></i> Add Category</button>
+      <button id="exportBtn" class="btn btn-blue"><i class="fa-solid fa-file-arrow-down"></i> Export</button>
+      <input type="file" id="importFile" class="d-none" accept="application/json" style="display:none" />
+      <button id="importBtn" class="btn btn-gray"><i class="fa-solid fa-file-arrow-up"></i> Import</button>
+    </div>
+
+    <!-- Categories render here -->
+    <div id="categoriesContainer"></div>
+  </div>
+
+<script>
+/* ===================== STATE ===================== */
+let projectData = JSON.parse(localStorage.getItem("projectData")) || {};
+const container = document.getElementById("categoriesContainer");
+
+/* ===================== HELPERS ===================== */
+const saveData = () => localStorage.setItem("projectData", JSON.stringify(projectData, null, 2));
+const toCols = s => s.split(",").map(x => x.trim()).filter(Boolean);
+function flash(el, ok=true){
+  el.classList.add(ok ? 'flash-success' : 'flash-danger');
+  setTimeout(()=>el.classList.remove(ok ? 'flash-success' : 'flash-danger'), 450);
+}
+
+/* ===================== BUILDERS ===================== */
+function buildRow(category, fields, data = {}){
+  const row = document.createElement("div");
+  row.className = "grid-row";
+  row.style.gridTemplateColumns = `repeat(${fields.length}, minmax(0, 1fr)) 140px`; // fields + actions
+
+  fields.forEach(field => {
+    const lower = field.toLowerCase();
+    const cell = document.createElement("div");
+    cell.className = "cell";
+
+    const input = document.createElement("input");
+    input.className = "input";
+    input.placeholder = field;
+    input.value = data[field] || "";
+    input.setAttribute("data-field", field);
+    input.addEventListener("input", () => updateCategoryData(category));
+    if (lower === "password") input.type = "password";
+    cell.appendChild(input);
+
+    // URL open button
+    if (lower === "url") {
+      const openBtn = document.createElement("button");
+      openBtn.className = "btn btn-ghost";
+      openBtn.title = "Open link";
+      openBtn.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i>`;
+      openBtn.addEventListener("click", () => {
+        let val = (input.value || "").trim();
+        if (!val) return;
+        if (!/^https?:\/\//i.test(val)) val = "https://" + val;
+        window.open(val, "_blank");
+      });
+      cell.appendChild(openBtn);
+    }
+
+    // Password toggle
+    if (lower === "password") {
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "btn btn-ghost";
+      toggleBtn.title = "Show / Hide";
+      toggleBtn.innerHTML = `<i class="fa-regular fa-eye"></i>`;
+      toggleBtn.addEventListener("click", () => {
+        const isPwd = input.type === "password";
+        input.type = isPwd ? "text" : "password";
+        toggleBtn.innerHTML = isPwd
+          ? `<i class="fa-regular fa-eye-slash"></i>`
+          : `<i class="fa-regular fa-eye"></i>`;
+      });
+      cell.appendChild(toggleBtn);
+    }
+
+    // Copy button for every field
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn btn-ghost";
+    copyBtn.title = "Copy value";
+    copyBtn.innerHTML = `<i class="fa-regular fa-copy"></i>`;
+    copyBtn.addEventListener("click", async () => {
+      try{
+        await navigator.clipboard.writeText(input.value || "");
+        copyBtn.innerHTML = `<i class="fa-solid fa-check"></i>`;
+        flash(copyBtn, true);
+        setTimeout(()=> copyBtn.innerHTML = `<i class="fa-regular fa-copy"></i>`, 900);
+      }catch{
+        flash(copyBtn, false);
+        alert("Copy failed");
+      }
+    });
+    cell.appendChild(copyBtn);
+
+    row.appendChild(cell);
+  });
+
+  // actions column
+  const actions = document.createElement("div");
+  actions.className = "row-actions";
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "btn btn-red";
+  delBtn.innerHTML = `<i class="fa-solid fa-trash"></i> Delete`;
+  delBtn.addEventListener("click", () => {
+    if (!confirm("Delete this row?")) return;
+    row.remove();
+    updateCategoryData(category);
+    flash(delBtn, false);
+  });
+  actions.appendChild(delBtn);
+
+  row.appendChild(actions);
+  return row;
+}
+
+function updateCategoryData(category){
+  const section = document.querySelector(`[data-category="${CSS.escape(category)}"]`);
+  if (!section) return;
+  const fields = section.getAttribute("data-fields").split(",");
+  const rows = section.querySelectorAll(".grid-row");
+  const data = [];
+  rows.forEach(r=>{
+    const obj = {};
+    fields.forEach(f=>{
+      const inp = r.querySelector(`input[data-field="${CSS.escape(f)}"]`);
+      if (inp) obj[f] = inp.value;
+    });
+    if (Object.keys(obj).length) data.push(obj);
+  });
+  projectData[category].data = data;
+  saveData();
+}
+
+function renderCategory(category, fields, data=[]){
+  const card = document.createElement("div");
+  card.className = "cat";
+  card.setAttribute("data-category", category);
+  card.setAttribute("data-fields", fields.join(","));
+
+  // Header
+  const head = document.createElement("div");
+  head.className = "cat-head";
+
+  const title = document.createElement("h3");
+  title.className = "cat-title";
+  title.innerHTML = `<i class="fa-solid fa-folder"></i> ${category}`;
+  head.appendChild(title);
+
+  const headBtns = document.createElement("div");
+  headBtns.className = "head-actions";
+
+  const collapseBtn = document.createElement("button");
+  collapseBtn.className = "btn btn-ghost";
+  collapseBtn.title = "Collapse / Expand";
+  collapseBtn.innerHTML = `<i class="fa-solid fa-chevron-up"></i>`;
+  collapseBtn.addEventListener("click", ()=>{
+    card.classList.toggle("collapsed");
+    collapseBtn.innerHTML = card.classList.contains("collapsed")
+      ? `<i class="fa-solid fa-chevron-down"></i>`
+      : `<i class="fa-solid fa-chevron-up"></i>`;
+  });
+  headBtns.appendChild(collapseBtn);
+
+  const renameBtn = document.createElement("button");
+  renameBtn.className = "btn btn-blue";
+  renameBtn.innerHTML = `<i class="fa-solid fa-pen"></i> Rename`;
+  renameBtn.addEventListener("click", ()=>{
+    const newName = prompt("Enter new category name:", category);
+    if (!newName || newName === category) return;
+    if (projectData[newName]) return alert("A category with that name already exists.");
+    projectData[newName] = projectData[category];
+    delete projectData[category];
+    saveData();
+    renderAll();
+  });
+  headBtns.appendChild(renameBtn);
+
+  const delCatBtn = document.createElement("button");
+  delCatBtn.className = "btn btn-red";
+  delCatBtn.innerHTML = `<i class="fa-solid fa-trash"></i> Delete`;
+  delCatBtn.addEventListener("click", ()=>{
+    if (!confirm(`Delete category "${category}"?`)) return;
+    delete projectData[category];
+    saveData();
+    renderAll();
+  });
+  headBtns.appendChild(delCatBtn);
+
+  head.appendChild(headBtns);
+  card.appendChild(head);
+
+  // Grid header
+  const header = document.createElement("div");
+  header.className = "grid-header";
+  header.style.gridTemplateColumns = `repeat(${fields.length}, minmax(0, 1fr)) 140px`;
+  fields.forEach(f=>{
+    const d = document.createElement("div");
+    d.textContent = f.toUpperCase();
+    header.appendChild(d);
+  });
+  const actLab = document.createElement("div");
+  actLab.textContent = "ACTIONS";
+  header.appendChild(actLab);
+  card.appendChild(header);
+
+  // rows
+  data.forEach(entry => {
+    card.appendChild(buildRow(category, fields, entry));
+  });
+
+  // add row
+  const addWrap = document.createElement("div");
+  addWrap.className = "add-row-wrap";
+  const addBtn = document.createElement("button");
+  addBtn.className = "btn btn-green add-row-btn";
+  addBtn.style.width = "100%";
+  addBtn.innerHTML = `<i class="fa-solid fa-plus"></i> Add Row`;
+  addBtn.addEventListener("click", ()=>{
+    const r = buildRow(category, fields);
+    card.insertBefore(r, addWrap);
+    updateCategoryData(category);
+  });
+  addWrap.appendChild(addBtn);
+  card.appendChild(addWrap);
+
+  container.appendChild(card);
+}
+
+function renderAll(){
+  container.innerHTML = "";
+  for (const cat in projectData){
+    const { fields, data } = projectData[cat];
+    renderCategory(cat, fields, data);
+  }
+}
+
+/* ===================== TOP BAR ===================== */
+document.getElementById("addCatBtn").addEventListener("click", ()=>{
+  const name = document.getElementById("newCategoryInput").value.trim();
+  const fields = toCols(document.getElementById("newFieldsInput").value.trim());
+  if (!name || fields.length === 0){
+    alert("Please enter both category name and column names (comma-separated).");
+    return;
+  }
+  if (projectData[name]){
+    alert("Category already exists.");
+    return;
+  }
+  projectData[name] = { fields, data: [] };
+  saveData();
+  renderAll();
+  document.getElementById("newCategoryInput").value = "";
+  document.getElementById("newFieldsInput").value = "";
+});
+
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(projectData, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "credentials.json";
+  a.click();
+});
+
+document.getElementById("importBtn").addEventListener("click", ()=>{
+  document.getElementById("importFile").click();
+});
+document.getElementById("importFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const data = JSON.parse(ev.target.result);
+      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid shape");
+      projectData = data;
+      saveData();
+      renderAll();
+    }catch(err){
+      alert("Invalid JSON file.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* ===================== INIT ===================== */
+renderAll();
+</script>
+</body>
+</html>
+----------------------------------------------------------------------------------------------------------------
+
 // FedSecuritiesApi.java
 
 import io.swagger.v3.oas.annotations.Operation;
