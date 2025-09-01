@@ -1,3 +1,17 @@
+" Always start in Insert mode
+autocmd VimEnter * startinsert
+autocmd BufEnter * startinsert
+
+" Pass system shortcuts to IntelliJ
+map <C-c> <Action>(EditorCopy)
+map <C-x> <Action>(EditorCut)
+map <C-v> <Action>(EditorPaste)
+map <C-z> <Action>(Undo)
+map <C-y> <Action>(Redo)
+
+
+------------
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
