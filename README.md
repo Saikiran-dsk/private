@@ -1,3 +1,102 @@
+function Add-SharedMailboxToMailEnabledSecurityGroup {
+    [CmdletBinding()]
+    param (
+        # Exchange Online App-only auth
+        [Parameter(Mandatory)]
+        [string]$ClientId,
+
+        [Parameter(Mandatory)]
+        [string]$TenantId,
+
+        [Parameter(Mandatory)]
+        [string]$CertificateThumbprint,
+
+        # Objects
+        [Parameter(Mandatory)]
+        [string]$SharedMailboxDisplayName,
+
+        [Parameter(Mandatory)]
+        [string]$MailEnabledSecurityGroupDisplayName
+    )
+
+    try {
+        # -----------------------------
+        # Connect to Exchange Online
+        # -----------------------------
+        Import-Module ExchangeOnlineManagement -ErrorAction Stop
+
+        Connect-ExchangeOnline `
+            -AppId $ClientId `
+            -Organization $TenantId `
+            -CertificateThumbprint $CertificateThumbprint `
+            -ShowBanner:$false
+
+        Write-Verbose "Connected to Exchange Online"
+
+        # -----------------------------
+        # Validate Group
+        # -----------------------------
+        $group = Get-DistributionGroup `
+            -Identity $MailEnabledSecurityGroupDisplayName `
+            -ErrorAction SilentlyContinue
+
+        if (-not $group) {
+            throw "Mail-enabled security group '$MailEnabledSecurityGroupDisplayName' not found."
+        }
+
+        # -----------------------------
+        # Validate Shared Mailbox
+        # -----------------------------
+        $mailbox = Get-Mailbox `
+            -Identity $SharedMailboxDisplayName `
+            -ErrorAction SilentlyContinue
+
+        if (-not $mailbox) {
+            throw "Shared mailbox '$SharedMailboxDisplayName' not found."
+        }
+
+        # -----------------------------
+        # Check existing membership
+        # -----------------------------
+        $alreadyMember = Get-DistributionGroupMember `
+            -Identity $MailEnabledSecurityGroupDisplayName |
+            Where-Object {
+                $_.PrimarySmtpAddress -eq $mailbox.PrimarySmtpAddress
+            }
+
+        if ($alreadyMember) {
+            Write-Host "Shared mailbox already exists in the group." -ForegroundColor Yellow
+            return
+        }
+
+        # -----------------------------
+        # Add mailbox to group
+        # -----------------------------
+        Add-DistributionGroupMember `
+            -Identity $MailEnabledSecurityGroupDisplayName `
+            -Member $SharedMailboxDisplayName
+
+        Write-Host "Shared mailbox added successfully." -ForegroundColor Green
+    }
+    catch {
+        Write-Error $_
+        throw
+    }
+    finally {
+        # -----------------------------
+        # Disconnect
+        # -----------------------------
+        Disconnect-ExchangeOnline -Confirm:$false
+    }
+}
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
