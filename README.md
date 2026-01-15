@@ -1,3 +1,10 @@
+
+Import-PfxCertificate `
+  -FilePath "E:\exo-app.pfx" `
+  -CertStoreLocation Cert:\CurrentUser\My `
+  -Password (ConvertTo-SecureString "PfxPasswordHere" -AsPlainText -Force)
+
+
 function Add-SharedMailboxToMailEnabledSecurityGroup {
     [CmdletBinding()]
     param (
