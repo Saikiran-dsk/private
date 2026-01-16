@@ -1,3 +1,50 @@
+Get-MgOrganization | Select-Object DisplayName, VerifiedDomains
+
+
+
+$ClientId     = "<APP-ID>"
+$TenantDomain = "<tenant>.onmicrosoft.com"
+$PfxPath      = "C:\certs\exo-app.pfx"
+$PfxPassword  = ConvertTo-SecureString "PfxPasswordHere" -AsPlainText -Force
+
+Connect-ExchangeOnline `
+  -AppId $ClientId `
+  -Organization $TenantDomain `
+  -CertificateFilePath $PfxPath `
+  -CertificatePassword $PfxPassword `
+  -CommandName Get-OrganizationConfig `
+  -ShowBanner:$false
+
+
+
+;;;;;;;;;;
+
+$ClientId     = "<APP-ID>"
+$TenantDomain = "<tenant>.onmicrosoft.com"
+
+$PfxPath = "C:\certs\exo-app.pfx"
+$PfxPassword = ConvertTo-SecureString "PfxPasswordHere" -AsPlainText -Force
+
+Connect-ExchangeOnline `
+  -AppId $ClientId `
+  -Organization $TenantDomain `
+  -CertificateFilePath $PfxPath `
+  -CertificatePassword $PfxPassword `
+  -CommandName Get-DistributionGroup `
+  -ShowBanner:$false
+
+
+Import-PfxCertificate `
+  -FilePath "E:\exo-app.pfx" `
+  -CertStoreLocation Cert:\CurrentUser\My `
+  -Password (ConvertTo-SecureString "PfxPasswordHere" -AsPlainText -Force)
+
+Connect-ExchangeOnline `
+  -AppId $ClientId `
+  -Organization $TenantDomain `
+  -CertificateThumbprint "<THUMBPRINT>" `
+  -CommandName Get-DistributionGroup `
+  -ShowBanner:$false
 
 Import-PfxCertificate `
   -FilePath "E:\exo-app.pfx" `
