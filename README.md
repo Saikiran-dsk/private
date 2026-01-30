@@ -1,3 +1,103 @@
+
+
+try {
+    # -------------------------------------------------
+    # STEP 1: Get tenant initial domain via Graph
+    # -------------------------------------------------
+    Connect-MgGraph `
+        -ClientId $connParams.ClientId `
+        -TenantId $connParams.TenantId `
+        -CertificateThumbprint $connParams.CertThumbprint `
+        -ErrorAction Stop
+
+    $tenantDomain = (
+        Get-MgOrganization |
+        Select-Object -ExpandProperty VerifiedDomains |
+        Where-Object { $_.IsInitial -eq $true -and $_.IsDefault -eq $true }
+    ).Name
+
+    if (-not $tenantDomain) {
+        throw "Unable to determine tenant initial domain"
+    }
+
+    Disconnect-MgGraph
+
+    # -------------------------------------------------
+    # STEP 2: Connect Exchange Online (FULL session)
+    # -------------------------------------------------
+    Import-Module ExchangeOnlineManagement -ErrorAction Stop
+
+    Connect-ExchangeOnline `
+        -AppId $connParams.ClientId `
+        -Organization $tenantDomain `
+        -CertificateThumbprint $connParams.CertThumbprint `
+        -ShowBanner:$false `
+        -ErrorAction Stop
+
+    # -------------------------------------------------
+    # STEP 3: Resolve Shared Mailbox (Exchange truth)
+    # -------------------------------------------------
+    $mailbox = Get-Recipient `
+        -Filter "RecipientTypeDetails -eq 'SharedMailbox' -and DisplayName -eq '$($taskParams.shared_mail_boxname)'"
+
+    if ($mailbox.Count -ne 1) {
+        throw "Shared mailbox lookup returned $($mailbox.Count) results"
+    }
+
+    $mailboxSmtp = [string]$mailbox.PrimarySmtpAddress
+
+    # -------------------------------------------------
+    # STEP 4: Resolve Mail-Enabled Security Group
+    # -------------------------------------------------
+    $group = Get-Recipient `
+        -Filter "RecipientTypeDetails -eq 'MailUniversalSecurityGroup' -and DisplayName -eq '$($taskParams.group_name)'"
+
+    if ($group.Count -ne 1) {
+        throw "Group lookup returned $($group.Count) results"
+    }
+
+    # -------------------------------------------------
+    # STEP 5: Check existing membership
+    # -------------------------------------------------
+    $exists = Get-DistributionGroupMember -Identity $group.Identity |
+        Where-Object { $_.PrimarySmtpAddress -eq $mailboxSmtp }
+
+    if ($exists) {
+        return @{
+            status  = "SUCCESS"
+            message = "Shared mailbox already exists in group"
+            mailbox = $mailboxSmtp
+            group   = $group.PrimarySmtpAddress.ToString()
+        } | ConvertTo-Json -Depth 3
+    }
+
+    # -------------------------------------------------
+    # STEP 6: Add mailbox (STRING ONLY)
+    # -------------------------------------------------
+    Add-DistributionGroupMember `
+        -Identity $group.Identity `
+        -Member $mailboxSmtp `
+        -BypassSecurityGroupManagerCheck `
+        -ErrorAction Stop
+
+    return @{
+        status  = "SUCCESS"
+        message = "Shared mailbox added to mail-enabled security group"
+        mailbox = $mailboxSmtp
+        group   = $group.PrimarySmtpAddress.ToString()
+    } | ConvertTo-Json -Depth 3
+}
+catch {
+    return @{
+        status  = "ERROR"
+        message = $_.Exception.Message
+    } | ConvertTo-Json -Depth 3
+}
+finally {
+    Disconnect-ExchangeOnline -Confirm:$false
+}
+
+--------------------------------
 function AddSharedMailBoxAccess {
     param (
         [hashtable]$taskParams,
