@@ -1,4 +1,88 @@
 function AddSharedMailBoxAccess {
+    param (
+        [hashtable]$taskParams,
+        [hashtable]$connParams
+        # connParams.ClientId
+        # connParams.TenantId
+        # connParams.CertThumbprint
+    )
+
+    try {
+        # -------------------------------------------------
+        # STEP 1: Get tenant domain via Microsoft Graph
+        # -------------------------------------------------
+        Connect-MgGraph `
+            -ClientId $connParams.ClientId `
+            -TenantId $connParams.TenantId `
+            -CertificateThumbprint $connParams.CertThumbprint `
+            -ErrorAction Stop
+
+        $tenantDomain = (
+            Get-MgOrganization |
+            Select-Object -ExpandProperty VerifiedDomains |
+            Where-Object { $_.IsDefault -eq $true -and $_.IsInitial -eq $true }
+        ).Name
+
+        if (-not $tenantDomain) {
+            throw "Unable to determine tenant domain from Microsoft Graph"
+        }
+
+        Disconnect-MgGraph
+
+        # -------------------------------------------------
+        # STEP 2: Connect to Exchange Online (REQUIRED org)
+        # -------------------------------------------------
+        Import-Module ExchangeOnlineManagement -ErrorAction Stop
+
+        Connect-ExchangeOnline `
+            -AppId $connParams.ClientId `
+            -Organization $tenantDomain `
+            -CertificateThumbprint $connParams.CertThumbprint `
+            -CommandName Get-Mailbox,Get-DistributionGroup,Get-DistributionGroupMember,Add-DistributionGroupMember `
+            -ShowBanner:$false `
+            -ErrorAction Stop
+
+        # -------------------------------------------------
+        # STEP 3: Resolve objects
+        # -------------------------------------------------
+        $mailbox = Get-Mailbox -Identity $taskParams.shared_mail_boxname -ErrorAction Stop
+        $group   = Get-DistributionGroup -Identity $taskParams.group_name -ErrorAction Stop
+
+        $exists = Get-DistributionGroupMember -Identity $group.Identity |
+            Where-Object { $_.PrimarySmtpAddress -eq $mailbox.PrimarySmtpAddress }
+
+        if ($exists) {
+            return @{
+                status  = "SUCCESS"
+                message = "Shared mailbox already exists in group"
+            } | ConvertTo-Json
+        }
+
+        Add-DistributionGroupMember `
+            -Identity $group.Identity `
+            -Member $mailbox.Identity `
+            -ErrorAction Stop
+
+        return @{
+            status  = "SUCCESS"
+            message = "Shared mailbox added to mail-enabled security group"
+        } | ConvertTo-Json
+    }
+    catch {
+        return @{
+            status  = "ERROR"
+            message = $_.Exception.Message
+        } | ConvertTo-Json
+    }
+    finally {
+        Disconnect-ExchangeOnline -Confirm:$false
+    }
+}
+-------
+
+
+
+function AddSharedMailBoxAccess {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
