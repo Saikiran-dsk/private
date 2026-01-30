@@ -1,4 +1,104 @@
-Get-MgOrganization | Select-Object DisplayName, VerifiedDomains
+function AddSharedMailBoxAccess {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [hashtable]$taskParams,
+        # Required keys:
+        # $taskParams.shared_mail_boxname
+        # $taskParams.group_name
+
+        [Parameter(Mandatory)]
+        [hashtable]$connParams
+        # Required keys:
+        # $connParams.ClientId
+        # $connParams.CertThumbprint
+    )
+
+    Import-Module ExchangeOnlineManagement -ErrorAction Stop
+
+    try {
+        # -------------------------------------------------
+        # Step 1: Connect temporarily to detect tenant domain
+        # -------------------------------------------------
+        Connect-ExchangeOnline `
+            -AppId $connParams.ClientId `
+            -CertificateThumbprint $connParams.CertThumbprint `
+            -CommandName Get-AcceptedDomain `
+            -ShowBanner:$false
+
+        $tenantDomain = (Get-AcceptedDomain |
+            Where-Object { $_.Default -eq $true -and $_.IsInitial -eq $true }
+        ).Name
+
+        if (-not $tenantDomain) {
+            throw "Unable to determine default tenant domain."
+        }
+
+        Disconnect-ExchangeOnline -Confirm:$false
+
+        # -------------------------------------------------
+        # Step 2: Reconnect using correct organization
+        # -------------------------------------------------
+        Connect-ExchangeOnline `
+            -AppId $connParams.ClientId `
+            -Organization $tenantDomain `
+            -CertificateThumbprint $connParams.CertThumbprint `
+            -CommandName Get-Mailbox,Get-DistributionGroup,Get-DistributionGroupMember,Add-DistributionGroupMember `
+            -ShowBanner:$false
+
+        # -------------------------------------------------
+        # Step 3: Validate shared mailbox
+        # -------------------------------------------------
+        $mailbox = Get-Mailbox `
+            -Identity $taskParams.shared_mail_boxname `
+            -ErrorAction Stop
+
+        # -------------------------------------------------
+        # Step 4: Validate mail-enabled security group
+        # -------------------------------------------------
+        $group = Get-DistributionGroup `
+            -Identity $taskParams.group_name `
+            -ErrorAction Stop
+
+        # -------------------------------------------------
+        # Step 5: Check existing membership
+        # -------------------------------------------------
+        $exists = Get-DistributionGroupMember -Identity $group.Identity |
+            Where-Object {
+                $_.PrimarySmtpAddress -eq $mailbox.PrimarySmtpAddress
+            }
+
+        if ($exists) {
+            Write-Host "Shared mailbox already exists in the group." -ForegroundColor Yellow
+            return
+        }
+
+        # -------------------------------------------------
+        # Step 6: Add shared mailbox to group
+        # -------------------------------------------------
+        Add-DistributionGroupMember `
+            -Identity $group.Identity `
+            -Member $mailbox.Identity
+
+        Write-Host "Shared mailbox added to mail-enabled security group successfully." -ForegroundColor Green
+    }
+    catch {
+        Write-Error $_.Exception.Message
+        throw
+    }
+    finally {
+        Disconnect-ExchangeOnline -Confirm:$false
+    }
+}
+
+
+
+
+
+
+
+
+---Get-MgOrganization | Select-Object DisplayName, VerifiedDomains
 
 
 
