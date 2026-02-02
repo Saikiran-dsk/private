@@ -1,5 +1,19 @@
 
+# 1. Connect to Microsoft Graph using your App Credentials
+# You will need your AppID, TenantName, and Certificate or ClientSecret
+Connect-MgGraph -TenantId "x.onmicrosoft.com" -ClientId "YOUR_APP_ID" -CertificateThumbprint "THUMBPRINT"
 
+# 2. Get the Group ID (Searching by Email)
+$group = Get-MgGroup -Filter "MailEnabled eq true and ProxyAddresses/any(c:c eq 'smtp:group@company.com')"
+
+# 3. Get the Shared Mailbox ID (Shared Mailboxes are 'Users' in Graph)
+$sharedMailbox = Get-MgUser -UserId "shared@company.com"
+
+# 4. Add the member (No Manager check required for Apps with the right scope)
+New-MgGroupMember -GroupId $group.Id -DirectoryObjectId $sharedMailbox.Id
+
+
+------
 try {
     # -------------------------------------------------
     # STEP 1: Get tenant initial domain via Graph
