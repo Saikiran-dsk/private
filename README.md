@@ -1,3 +1,28 @@
+
+Get-MgDirectoryRole | Where-Object {$_.DisplayName -eq "Global Administrator"}
+
+Get-MgDirectoryRole | Where-Object {$_.DisplayName -eq "Global Administrator"}
+
+
+$role = Get-MgDirectoryRole | Where-Object {$_.DisplayName -eq "Global Administrator"}
+
+Get-MgDirectoryRoleMember -DirectoryRoleId $role.Id |
+Select-Object Id
+
+
+
+$roleId = (Get-MgDirectoryRole | Where-Object {$_.DisplayName -eq "Global Administrator"}).Id
+
+Get-MgDirectoryRoleMember -DirectoryRoleId $roleId |
+ForEach-Object { Get-MgUser -UserId $_.Id } |
+Select DisplayName, UserPrincipalName
+
+Set-DistributionGroup -Identity $group.Identity -ManagedBy @{Add="admin@domain.com"}
+Set-DistributionGroup -Identity $group.Identity -BypassSecurityGroupManagerCheck $true
+
+
+----
+
 function AddSharedMailBoxAccess {
     param (
         [Parameter(Mandatory = $true)]
