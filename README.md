@@ -1,3 +1,114 @@
+function AddSharedMailBoxAccess {
+    param (
+        [Parameter(Mandatory = $true)]
+        [hashtable]$taskParams,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$connParams
+        # connParams.ClientId
+        # connParams.TenantId
+        # connParams.CertThumbprint
+    )
+
+    try {
+        # -------------------------------------------------
+        # STEP 1: Connect to Microsoft Graph (Get tenant domain)
+        # -------------------------------------------------
+        Connect-MgGraph `
+            -ClientId $connParams.ClientId `
+            -TenantId $connParams.TenantId `
+            -CertificateThumbprint $connParams.CertThumbprint `
+            -ErrorAction Stop
+
+        $tenantDomain = (
+            Get-MgOrganization |
+            Select-Object -ExpandProperty VerifiedDomains |
+            Where-Object { $_.IsDefault -eq $true }
+        ).Name
+
+        if (-not $tenantDomain) {
+            throw "Unable to determine tenant default domain"
+        }
+
+        Disconnect-MgGraph -ErrorAction SilentlyContinue
+
+        # -------------------------------------------------
+        # STEP 2: Connect to Exchange Online (App-only)
+        # -------------------------------------------------
+        Import-Module ExchangeOnlineManagement -ErrorAction Stop
+
+        Connect-ExchangeOnline `
+            -AppId $connParams.ClientId `
+            -Organization $tenantDomain `
+            -CertificateThumbprint $connParams.CertThumbprint `
+            -CommandName `
+                Get-Mailbox,
+                Get-DistributionGroup,
+                Get-DistributionGroupMember,
+                Add-DistributionGroupMember `
+            -ShowBanner:$false `
+            -ErrorAction Stop
+
+        # -------------------------------------------------
+        # STEP 3: Resolve Shared Mailbox
+        # -------------------------------------------------
+        $mailbox = Get-Mailbox -Identity $taskParams.shared_mail_boxname -ErrorAction Stop
+
+        if ($mailbox.RecipientTypeDetails -ne "SharedMailbox") {
+            throw "Recipient '$($mailbox.PrimarySmtpAddress)' is not a Shared Mailbox"
+        }
+
+        # -------------------------------------------------
+        # STEP 4: Resolve Distribution Group
+        # -------------------------------------------------
+        $group = Get-DistributionGroup -Identity $taskParams.group_name -ErrorAction Stop
+
+        # -------------------------------------------------
+        # STEP 5: Check existing membership
+        # -------------------------------------------------
+        $exists = Get-DistributionGroupMember `
+            -Identity $group.Identity `
+            -ResultSize Unlimited |
+            Where-Object {
+                $_.PrimarySmtpAddress -eq $mailbox.PrimarySmtpAddress
+            }
+
+        if ($exists) {
+            return @{
+                status  = "SUCCESS"
+                message = "Shared mailbox already exists in distribution group"
+                mailbox = $mailbox.PrimarySmtpAddress
+                group   = $group.PrimarySmtpAddress
+            } | ConvertTo-Json -Depth 3
+        }
+
+        # -------------------------------------------------
+        # STEP 6: Add Shared Mailbox to Distribution Group
+        # -------------------------------------------------
+        Add-DistributionGroupMember `
+            -Identity $group.Identity `
+            -Member $mailbox.Identity `
+            -ErrorAction Stop
+
+        return @{
+            status  = "SUCCESS"
+            message = "Shared mailbox added to distribution group"
+            mailbox = $mailbox.PrimarySmtpAddress
+            group   = $group.PrimarySmtpAddress
+        } | ConvertTo-Json -Depth 3
+    }
+    catch {
+        return @{
+            status  = "ERROR"
+            message = $_.Exception.Message
+        } | ConvertTo-Json -Depth 3
+    }
+    finally {
+        Disconnect-ExchangeOnline -Confirm:$false -ErrorAction SilentlyContinue
+    }
+}
+--------------------------------------------
+
 
 # 1. Connect to Microsoft Graph using your App Credentials
 # You will need your AppID, TenantName, and Certificate or ClientSecret
