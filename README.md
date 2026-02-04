@@ -1,3 +1,41 @@
+$adminUPN = (
+    Get-MgDirectoryRoleMember -DirectoryRoleId $roleId |
+    ForEach-Object { Get-MgUser -UserId $_.Id } |
+    Select-Object -First 1 -ExpandProperty UserPrincipalName
+)
+
+$adminUPN
+
+
+
+
+$adminUPN = (
+    Get-MgDirectoryRoleMember -DirectoryRoleId $roleId |
+    ForEach-Object { Get-MgUser -UserId $_.Id } |
+    Where-Object { $_.AccountEnabled -eq $true } |
+    Select-Object -First 1 -ExpandProperty UserPrincipalName
+)
+
+$adminUPN
+
+
+
+
+$adminUPN = (
+    Get-MgDirectoryRoleMember -DirectoryRoleId $roleId |
+    ForEach-Object { Get-MgUser -UserId $_.Id } |
+    Where-Object { $_.UserPrincipalName -like "*admin*" } |
+    Select-Object -First 1 -ExpandProperty UserPrincipalName
+)
+
+$adminUPN
+
+
+Set-DistributionGroup -Identity $group.Identity -ManagedBy @{Add=$adminUPN}
+Set-DistributionGroup -Identity $group.Identity -BypassSecurityGroupManagerCheck $true
+
+
+-----------------------------
 
 Get-MgDirectoryRole | Where-Object {$_.DisplayName -eq "Global Administrator"}
 
